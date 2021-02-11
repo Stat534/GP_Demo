@@ -1,0 +1,88 @@
+---
+title: 'Lecture 8: GP demo'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(rstan)
+library(mnormt)
+library(shinystan)
+library(plgp)
+library(reshape2)
+set.seed(02112021)
+options(mc.cores = parallel::detectCores())
+#setwd("/Volumes/GoogleDrive/My Drive/Teaching/STAT534/Lectures/Lecture 4. Stan and GP")
+```
+
+
+
+#### Conditional Normal distribution
+Continuing the theme from last week, now there is one more location that we are interested in learning the temperature, maybe Rendezvous Ski Trails in West Yellowstone.
+
+Let's assume that 
+$$\begin{bmatrix} y_{bridger}\\ y_{big sky}\\ y_{rendezvous} \end{bmatrix} \sim N(\begin{bmatrix} 15 \\ 15 \\ 15\end{bmatrix}, 100\begin{bmatrix} 1 & .3 & .2 \\ .3 & 1 & .5 \\ .2 & .5 & 1
+\end{bmatrix})$$
+
+###### 1. Simulate one data point for Bridger and Big Sky
+
+Simulate a single realization from the distribution for Bridger and Big Sky (ignoring Rendezvous for now).
+
+###### 2. Estimate Rendezvous, conditional on the data point from Bridger and Big Sky
+
+Conditional on the values from the previous question, construct the distribution for the Rendezvous temperature. Add this to a graph with a marginal temperature. Rerun this a few times (with a different seed) to see how it changes.
+
+#### GP in 1D
+
+Recall our simulated Gaussian process in 1D
+
+```{r}
+phi <- 1
+sigmasq <- 1
+n <- 50
+x <- seq(0, 10, length.out = n)
+d <- sqrt(plgp::distance(x))
+eps <- sqrt(.Machine$double.eps) 
+H <- exp(-d/phi) + diag(eps, n) 
+y <- rmnorm(1, rep(0,n),sigmasq * H)
+tibble(y = y, x = x) %>% ggplot(aes(y=y, x=x)) +
+  theme_bw() + ggtitle('Random realization of a GP with phi = 1 and sigmasq = 1') +
+  geom_point(size = .5)
+```
+
+We have simulated y ~ N(mu, sigmasq * H(phi)), where H(phi) is a correlation matrix from exp(-d/phi). 
+
+##### STAN CODE 
+Let's first write stan code to estimate phi, sigmasq and mu
+
+
+#### GP regression in 1D
+
+Now add a covariate
+
+```{r}
+phi <- 1
+sigmasq <- 1
+n <- 50
+x <- seq(0, 10, length.out = n)
+beta <- 1
+d <- sqrt(plgp::distance(x))
+eps <- sqrt(.Machine$double.eps) 
+H <- exp(-d/phi) + diag(eps, n) 
+y <- rmnorm(1, x * beta,sigmasq * H)
+reg_fig <- tibble(y = y, x = x) %>% ggplot(aes(y=y, x=x)) +
+  theme_bw() + ggtitle('Random realization of a GP with phi = 1 and sigmasq = 1') +
+  geom_point(size = .5)
+reg_fig
+```
+
+We have simulated y ~ N(mu, sigmasq * H(phi)), where H(phi) is a correlation matrix from exp(-d/phi). 
+
+##### STAN CODE 
+Let's first write stan code to estimate phi, sigmasq and beta
+
+
+##### Making Predictions
+
+For today, consider "plug in" estimates of phi, beta, and sigmasq. To make predictions from -1 to 11.
